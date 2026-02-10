@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const mysql = require('mysql2/promise');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -8,6 +9,7 @@ const errorHandler = require('./src/middleware/errorHandler');
 const db = require('./src/config/database');
 
 const app = express();
+app.use(express.json());
 
 // Middleware
 app.use(helmet());
@@ -78,21 +80,20 @@ app.get('/health', async (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-    res.json({
-        message: 'Notes API',
-        version: '1.0.0',
-        endpoints: {
-            notes: '/api/notes',
-            health: '/health'
-        },
-        documentation: 'Документация API доступна по эндпоинтам'
-    });
+    res.json({ message: 'Notes API is working!' });
 });
 
 // Error handling
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString() 
+    });
+});
 
 // Запуск сервера
 app.listen(PORT, () => {
@@ -103,6 +104,7 @@ app.listen(PORT, () => {
     console.log(`📊 Health Check: http://localhost:${PORT}/health`);
     console.log(`💾 Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
     console.log('='.repeat(50));
+    console.log(`✅ Server started on port ${PORT}`);
 });
 
 // Обработка ошибок при запуске
