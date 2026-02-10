@@ -1,67 +1,32 @@
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
-const app = express();
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Функция создания таблицы
-async function createNotesTable() {
-    console.log('🔍 Checking DATABASE_URL:', process.env.DATABASE_URL ? '✅ Set' : '❌ Not set');
-    
-    if (!process.env.DATABASE_URL) {
-        console.log('⚠️  Please add DATABASE_URL in Railway Variables');
-        console.log('Railway should add it automatically when you created the database');
-        return false;
-    }
-    
-    try {
-        console.log('Connecting to database...');
-        const connection = await mysql.createConnection({
-            uri: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false }
-        });
-        
-        console.log('✅ Connected to MySQL');
-        
-        // Создаем таблицу
-        const sql = `
-            CREATE TABLE IF NOT EXISTS notes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                content TEXT NOT NULL,
-                tags JSON,
-                important BOOLEAN DEFAULT FALSE,
-                deleted BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `;
-        
-        await connection.execute(sql);
-        console.log('✅ Notes table created successfully!');
-        
-        // Проверяем
-        const [tables] = await connection.execute('SHOW TABLES');
-        console.log(`📊 Tables in database: ${tables.length}`);
-        
-        await connection.end();
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Database error:', error.message);
-        console.error('Full error:', error);
-        return false;
-    }
-}
+// КОРНЕВОЙ ПУТЬ - обязательно!
+app.get('/', (req, res) => {
+    res.json({
+        message: '✅ Notes API is working!',
+        endpoints: {
+            home: '/',
+            health: '/health',
+            get_notes: 'GET /api/notes',
+            create_note: 'POST /api/notes',
+            api_docs: 'See code for full API'
+        }
+    });
+});
 
 // Health check
 app.get('/health', (req, res) => {
     res.json({ 
-        status: 'OK', 
+        status: 'OK',
         timestamp: new Date().toISOString(),
-        message: 'Notes API'
+        service: 'notes-api'
     });
 });
 
@@ -126,12 +91,6 @@ app.post('/api/notes', async (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 
-// Запуск сервера
-app.listen(PORT, '0.0.0.0', async () => {
-    console.log('='.repeat(50));
-    console.log(`🚀 Server started on port ${PORT}`);
-    console.log('='.repeat(50));
-    
-    // Создаем таблицу при запуске
-    await createNotesTable();
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server running on port ${PORT}`);
 });
