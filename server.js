@@ -1,38 +1,26 @@
-require('dotenv').config();
 const express = require('express');
-
 const app = express();
 
-// Простое middleware
-app.use(express.json());
-
-// Health check - ПРОСТОЙ и НАДЕЖНЫЙ
+// Health check - ДОЛЖЕН БЫТЬ ПЕРВЫМ
 app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK',
-        timestamp: new Date().toISOString(),
-        service: 'notes-api'
+        timestamp: new Date().toISOString()
     });
 });
 
-// Главная страница
+// Главная
 app.get('/', (req, res) => {
     res.json({ 
-        message: '🎉 Notes API is working!',
-        endpoints: {
-            home: '/',
-            health: '/health',
-            api: '/api/notes'
-        }
+        message: 'Notes API',
+        health: '/health'
     });
 });
 
-// Порт из окружения Railway
+// КРИТИЧЕСКИ ВАЖНО для Railway:
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0';
 
-// Запускаем сервер
-app.listen(PORT, () => {
-    console.log('='.repeat(50));
-    console.log(`🚀 Server started on port ${PORT}`);
-    console.log('='.repeat(50));
+app.listen(PORT, HOST, () => {
+    console.log(`✅ Server running on ${HOST}:${PORT}`);
 });
