@@ -1,3 +1,6 @@
+// Railway автоматически загружает переменные окружения
+// НЕ нужно использовать dotenv
+
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -6,7 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// КОРНЕВОЙ ПУТЬ - обязательно!
+// Проверяем переменные
+console.log('=== SERVER STARTING ===');
+console.log('PORT:', process.env.PORT || 8080);
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? '✅ Set' : '❌ Not set');
+
+// Корневой путь
 app.get('/', (req, res) => {
     res.json({
         message: '✅ Notes API is working!',
@@ -14,8 +22,7 @@ app.get('/', (req, res) => {
             home: '/',
             health: '/health',
             get_notes: 'GET /api/notes',
-            create_note: 'POST /api/notes',
-            api_docs: 'See code for full API'
+            create_note: 'POST /api/notes'
         }
     });
 });
@@ -24,8 +31,7 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK',
-        timestamp: new Date().toISOString(),
-        service: 'notes-api'
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -33,7 +39,7 @@ app.get('/health', (req, res) => {
 app.get('/api/notes', async (req, res) => {
     try {
         if (!process.env.DATABASE_URL) {
-            return res.status(500).json({ error: 'Database not configured' });
+            return res.json({ error: 'Database not configured' });
         }
         
         const connection = await mysql.createConnection({
@@ -42,24 +48,24 @@ app.get('/api/notes', async (req, res) => {
         });
         
         const [notes] = await connection.execute(
-            'SELECT * FROM notes WHERE deleted = FALSE ORDER BY updated_at DESC'
+            'SELECT * FROM notes WHERE deleted = FALSE'
         );
         
         await connection.end();
         res.json(notes);
         
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.json({ error: error.message });
     }
 });
 
 // Создать заметку
 app.post('/api/notes', async (req, res) => {
     try {
-        const { title, content, tags = [], important = false } = req.body;
+        const { title, content } = req.body;
         
         if (!title || !content) {
-            return res.status(400).json({ error: 'Title and content are required' });
+            return res.status(400).json({ error: 'Title and content required' });
         }
         
         const connection = await mysql.createConnection({
@@ -68,23 +74,21 @@ app.post('/api/notes', async (req, res) => {
         });
         
         const [result] = await connection.execute(
-            'INSERT INTO notes (title, content, tags, important) VALUES (?, ?, ?, ?)',
-            [title, content, JSON.stringify(tags), important]
+            'INSERT INTO notes (title, content) VALUES (?, ?)',
+            [title, content]
         );
         
         await connection.end();
         
-        res.status(201).json({
+        res.json({
             id: result.insertId,
             title,
             content,
-            tags,
-            important,
             success: true
         });
         
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.json({ error: error.message });
     }
 });
 
